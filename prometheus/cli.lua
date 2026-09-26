@@ -8,5 +8,5 @@ local function script_path()
 	local str = debug.getinfo(2, "S").source:sub(2)
 	return str:match("(.*[/%\\])") or "";
 end
-package.path = script_path() .. "?.lua;" .. package.path;
+local base = script_path(); package.path = base .. "?.lua;" .. base .. "src/?.lua;" .. base .. "src/?/?.lua;" .. package.path;
 require("src.cli");

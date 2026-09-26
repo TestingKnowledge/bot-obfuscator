@@ -101,3 +101,8 @@ This project bundles Prometheus 0.2.8. Prometheus's license requires attribution
 > Based on Prometheus by Elias Oelschner, https://github.com/prometheus-lua/Prometheus
 
 Prometheus 0.2.8 reports that LuaU support is not finished, so test the resulting scripts before relying on them.
+
+
+## If Render reports `module 'config' not found`
+
+The bundled Prometheus distribution must contain `prometheus/src/config.lua`. Do not upload only `prometheus/src/prometheus/`; upload the entire `prometheus/` directory. The Docker build now verifies this file and fails early with a clear message if it is missing.

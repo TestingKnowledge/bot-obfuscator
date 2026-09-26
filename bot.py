@@ -27,6 +27,7 @@ GITHUB_DIR = os.getenv("GITHUB_DIR", "obfuscated").strip("/")
 ALLOWED_PRESETS = {"Minify", "Weak", "Vmify", "Medium", "Strong"}
 PROM_DIR = Path(__file__).resolve().parent / "prometheus"
 CLI = PROM_DIR / "cli.lua"
+PROM_CONFIG = PROM_DIR / "src" / "config.lua"
 TMP_ROOT = Path(tempfile.gettempdir()) / "discord-prometheus-bot"
 TMP_ROOT.mkdir(parents=True, exist_ok=True)
 
@@ -255,6 +256,8 @@ async def main():
         raise RuntimeError(f"DEFAULT_PRESET must be one of: {', '.join(sorted(ALLOWED_PRESETS))}")
     if not CLI.exists():
         raise RuntimeError("Prometheus cli.lua was not found in ./prometheus")
+    if not PROM_CONFIG.exists():
+        raise RuntimeError("Prometheus installation is incomplete: ./prometheus/src/config.lua is missing. Re-upload the complete prometheus/ directory from the project ZIP.")
     runner = await start_health_server()
     try:
         await bot.start(DISCORD_TOKEN)
