@@ -1,0 +1,3 @@
+Based on Prometheus by Elias Oelschner, https://github.com/prometheus-lua/Prometheus
+
+The bundled Prometheus source and its license are located in ./prometheus/.

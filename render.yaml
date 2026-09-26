@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: prometheus-discord-obfuscator
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        sync: false
+      - key: GITHUB_BRANCH
+        value: main
+      - key: GITHUB_DIR
+        value: obfuscated
+      - key: BOT_PREFIX
+        value: .
+      - key: DEFAULT_PRESET
+        value: Medium
+      - key: MAX_FILE_MB
+        value: 5
+      - key: OBFUSCATE_TIMEOUT
+        value: 120
