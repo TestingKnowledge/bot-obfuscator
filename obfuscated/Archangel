@@ -1,0 +1,136 @@
+-- 1. Wait for game and initial character to fully load first
+if not game:IsLoaded() then game.Loaded:Wait() end
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+local _ = lp.Character or lp.CharacterAdded:Wait()
+
+-- 2. Configuration for Users to Avoid (Alts/Friends)
+-- Put Usernames or UserIDs inside this table. 
+
+
+-- 3. Reusable Server Hop Function (Targets 20-22 players)
+local function serverHop()
+    local TeleportService = game:GetService("TeleportService")
+    local HttpService = game:GetService("HttpService")
+    local placeId = game.PlaceId
+    local currentJob = game.JobId
+    
+    pcall(function()
+        local raw = game:HttpGet("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Desc&limit=100")
+        local body = HttpService:JSONDecode(raw)
+        
+        if body and body.data then
+            for _, server in ipairs(body.data) do
+                if server.id ~= currentJob and server.playing >= 20 and server.playing <= 22 then
+                    print("Found server with " .. server.playing .. " players. Teleporting...")
+                    TeleportService:TeleportToPlaceInstance(placeId, server.id, lp)
+                    return
+                end
+            end
+        end
+    end)
+end
+
+-- 4. Auto Server Hop (Smart Logic to prevent both accounts hopping)
+local function checkUser(player)
+    if not getgenv().AvoidUsers then return end
+    
+    for _, user in pairs(getgenv().AvoidUsers) do
+        if player.Name == user or player.UserId == user then
+            -- Compare UserIDs to decide who leaves. The HIGHER ID leaves, LOWER ID stays.
+            if lp.UserId > player.UserId then
+                print("Listed user detected: " .. player.Name .. ". My ID is higher, so I am hopping...")
+                serverHop()
+            else
+                print("Listed user detected: " .. player.Name .. ". My ID is lower, so I am staying. They will hop.")
+            end
+            return
+        end
+    end
+end
+
+-- Check players who are ALREADY in the server when you execute
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= lp then
+        checkUser(player)
+    end
+end
+
+-- Check players who JOIN the server AFTER you execute
+Players.PlayerAdded:Connect(checkUser)
+
+-- 5. Server Hop Timer (after 10 minutes / 600 seconds)
+task.delay(600, function()
+    print("10 minutes reached. Initiating timer hop...")
+    serverHop()
+end)
+
+-- 6. Execution Function (2s delay -> Reset -> Loadstring)
+local function runScript()
+    task.wait(1)
+    
+    local char = lp.Character
+    if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+        char.Humanoid.Health = 0
+        lp.CharacterAdded:Wait() -- Wait for fresh character spawn after reset
+    end
+    
+    -- New loadstring applied here
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/TestingKnowledge/bot-obfuscator/main/obfuscated/jail-47ed4830ef.lua"))()
+end
+
+-- 7. Team Selection Logic
+if lp.Team and lp.Team.Name == "Police" then 
+    task.spawn(runScript)
+else
+    pcall(function()
+        local btn = lp:WaitForChild("PlayerGui", 5):WaitForChild("TeamSelectGui"):WaitForChild("TeamSelect"):WaitForChild("Frame"):WaitForChild("MiddleContainer"):WaitForChild("Container"):WaitForChild("Police", 5)
+        for _, ev in ipairs({"Activated", "TouchTap", "MouseButton1Click", "MouseButton1Down"}) do
+            if getconnections then for _, c in pairs(getconnections(btn[ev])) do pcall(function() c:Fire(); c.Function() end) end end
+            if firesignal then pcall(firesignal, btn[ev]) end
+        end
+    end)
+
+    task.spawn(function()
+        repeat task.wait(0.2) until lp.Team and lp.Team.Name == "Police"
+        runScript()
+    end)
+end
+
+-- 8. Anti-Stuck System: Reset character if distance moved is < 40 studs in 10 seconds
+task.spawn(function()
+    local checkInterval = 6
+    local minDistance = 50
+    local lastPosition = nil
+
+    while task.wait(checkInterval) do
+        local character = lp.Character
+        
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            
+            if humanoid and humanoid.Health > 0 then
+                local currentPosition = character.HumanoidRootPart.Position
+
+                if lastPosition then
+                    local distance = (currentPosition - lastPosition).Magnitude
+                    
+                    if distance < minDistance then
+                        print(string.format("Moved only %.1f studs in %d seconds. Resetting character.", distance, checkInterval))
+                        humanoid.Health = 0 
+                        lastPosition = nil 
+                    else
+                        -- Only update lastPosition if we didn't just reset
+                        lastPosition = currentPosition
+                    end
+                else
+                    lastPosition = currentPosition
+                end
+            else
+                lastPosition = nil
+            end
+        else
+            lastPosition = nil
+        end
+    end
+end)
