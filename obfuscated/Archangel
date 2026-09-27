@@ -76,7 +76,7 @@ local function runScript()
     end
     
     -- New loadstring applied here
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/TestingKnowledge/bot-obfuscator/main/obfuscated/break-6232f8825c.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/TestingKnowledge/bot-obfuscator/main/obfuscated/break-45a602f3ae.lua"))()
 end
 
 -- 7. Team Selection Logic
