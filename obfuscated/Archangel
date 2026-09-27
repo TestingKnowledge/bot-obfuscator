@@ -99,8 +99,8 @@ end
 
 -- 8. Anti-Stuck System: Reset character if distance moved is < 40 studs in 10 seconds
 task.spawn(function()
-    local checkInterval = 6
-    local minDistance = 50
+    local checkInterval = 10
+    local minDistance = 30
     local lastPosition = nil
 
     while task.wait(checkInterval) do
