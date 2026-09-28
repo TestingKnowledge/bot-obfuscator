@@ -96,6 +96,107 @@ else
         runScript()
     end)
 end
+task.spawn(function()
+	local Players = game:GetService("Players")
+	local TeleportService = game:GetService("TeleportService")
+	local HttpService = game:GetService("HttpService")
+	local LocalPlayer = Players.LocalPlayer
+
+	-- Configuration
+	local PLACE_ID = game.PlaceId
+	local MIN_PLAYERS = 14
+	local MAX_PLAYERS = 27
+	local STUCK_TIME_LIMIT = 10
+	local MOVE_THRESHOLD = 20
+	local MIN_HEIGHT = 200
+	local MAX_HEIGHT = 1000
+
+	-- Fetch servers using Executor's HttpGet
+	local function serverHop()
+		local url = "https://games.roproxy.com/v1/games/" .. tostring(PLACE_ID) .. "/servers/Public?sortOrder=Asc&limit=100"
+		
+		local success, response = pcall(function()
+			return game:HttpGet(url)
+		end)
+
+		if success and response then
+			local data = HttpService:JSONDecode(response)
+			local validServers = {}
+			
+			if data and data.data then
+				for _, server in ipairs(data.data) do
+					if server.playing >= MIN_PLAYERS and server.playing <= MAX_PLAYERS and server.id ~= game.JobId then
+						table.insert(validServers, server.id)
+					end
+				end
+			end
+
+			if #validServers > 0 then
+				local randomServerId = validServers[math.random(1, #validServers)]
+				TeleportService:TeleportToPlaceInstance(PLACE_ID, randomServerId, LocalPlayer)
+			end
+		end
+	end
+
+	-- Main monitoring loop
+	local stuckTimer = 0
+	local referencePosition = nil
+
+	while task.wait(1) do
+		local character = LocalPlayer.Character
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			local hrp = character.HumanoidRootPart
+			local currentPos = hrp.Position
+
+			-- Set initial reference position
+			if not referencePosition then
+				referencePosition = currentPos
+			end
+
+			local distanceFromRef = (currentPos - referencePosition).Magnitude
+
+			-- Check if they moved more than 20 studs
+			if distanceFromRef > MOVE_THRESHOLD then
+				stuckTimer = 0
+				referencePosition = currentPos
+			else
+				-- Check altitude via Raycast
+				local raycastParams = RaycastParams.new()
+				raycastParams.FilterDescendantsInstances = {character}
+				raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+				-- Raycast straight down to find the ground
+				local rayResult = workspace:Raycast(currentPos, Vector3.new(0, -1000, 0), raycastParams)
+
+				local isHighUp = false
+				if rayResult then
+					local distanceToGround = currentPos.Y - rayResult.Position.Y
+					if distanceToGround >= MIN_HEIGHT and distanceToGround <= MAX_HEIGHT then
+						isHighUp = true
+					end
+				end
+
+				if isHighUp then
+					stuckTimer += 1
+					
+					if stuckTimer >= STUCK_TIME_LIMIT then
+						serverHop()
+						stuckTimer = 0
+						referencePosition = currentPos 
+						task.wait(10) -- Pause tracking while teleport processes
+					end
+				else
+					stuckTimer = 0
+					referencePosition = currentPos
+				end
+			end
+		else
+			-- Reset if character dies/respawns
+			stuckTimer = 0
+			referencePosition = nil
+		end
+	end
+end)
 
 -- 8. Anti-Stuck System: Reset character if distance moved is < 40 studs in 10 seconds
 task.spawn(function()
